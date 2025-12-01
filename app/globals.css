@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -44,6 +45,16 @@
 }
 
 :root {
+  --nav-bg: #264F2C; 
+  --nav-hover: #22C55E; 
+  --btn-primary: #008000; 
+  --danger: #E70A0A; 
+
+  --font-poppins: 'Poppins', Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --font-inter: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+
+  --font-geist-sans: var(--font-poppins);
+
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
