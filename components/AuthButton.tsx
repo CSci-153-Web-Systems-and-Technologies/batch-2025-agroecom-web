@@ -4,7 +4,6 @@ import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/use-user";
 
-
 const AuthButton = () => {
     const { user, signOut } = useUser();
     const router = useRouter();
@@ -13,6 +12,8 @@ const AuthButton = () => {
     return (
       <>
         <Button
+          variant="destructive"
+          size="lg"
           onClick={() => {
             signOut();
           }}
@@ -25,7 +26,7 @@ const AuthButton = () => {
   return (
     <>
     <Button
-      variant="outline"
+      size="lg"
       onClick={() => {
         router.push("/signup");
       }}
@@ -34,7 +35,7 @@ const AuthButton = () => {
     </Button>
 
     <Button
-      variant="outline"
+      size="lg"
       onClick={() => {
         router.push("/login");
       }}
