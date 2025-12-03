@@ -41,7 +41,7 @@ export interface HeroProps
   description?: string
   backgroundImage?: string
   overlay?: boolean
-  darkenImage?: boolean // Optional prop to control brightness
+  darkenImage?: boolean 
 }
 
 const Hero = React.forwardRef<HTMLDivElement, HeroProps>(
@@ -54,7 +54,7 @@ const Hero = React.forwardRef<HTMLDivElement, HeroProps>(
     subtitle, 
     description, 
     backgroundImage,
-    darkenImage = true, // Default to true for darkening
+    darkenImage = true, 
     children,
     ...props 
   }, ref) => {
@@ -65,7 +65,6 @@ const Hero = React.forwardRef<HTMLDivElement, HeroProps>(
         className={cn(heroVariants({ variant, align, size, className }))}
         {...props}
       >
-        {/* Background image with brightness */}
         {backgroundImage && (
           <div 
             className="absolute inset-0"
@@ -78,7 +77,6 @@ const Hero = React.forwardRef<HTMLDivElement, HeroProps>(
           />
         )}
         
-        {/* Content container */}
         <div className={cn(
           "container mx-auto relative z-10 max-w-4xl",
           align === "center" && "text-center mx-auto",
