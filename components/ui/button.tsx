@@ -11,7 +11,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-[var(--btn-primary)] text-white hover:bg-[var(--nav-hover)]",
         destructive:
-          "bg-[var(--danger)] text-white hover:bg-[color:var(--danger)/0.9] focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+          "hover:bg-[var(--danger)] text-white bg-red-700 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
           "border bg-[var(--card)] shadow-xs hover:bg-[var(--nav-hover)] hover:text-white dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         secondary:
@@ -26,7 +26,7 @@ const buttonVariants = cva(
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
         icon: "size-9",
         "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        "icon-lg": "h-20 w-20",
       },
     },
     defaultVariants: {
