@@ -2,11 +2,19 @@
 
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/hooks/use-user";
+import { signout } from "@/lib/auth-actions";
+import { useUserData } from "@/lib/user-data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AuthButton = () => {
-    const { user, signOut } = useUser();
-    const router = useRouter();
+  const { user, loading } = useUserData();
+  const router = useRouter();
+
+  if (loading) {
+    return (
+        <Skeleton className="h-10 w-24 rounded-md" />
+    );
+  }
 
   if (user) {
     return (
@@ -15,7 +23,7 @@ const AuthButton = () => {
           variant="destructive"
           size="lg"
           onClick={() => {
-            signOut();
+            signout();
           }}
         >
           Log out
@@ -23,25 +31,26 @@ const AuthButton = () => {
       </>
     );
   }
+
   return (
     <>
-    <Button
-      size="lg"
-      onClick={() => {
-        router.push("/signup");
-      }}
-    >
-      Signup
-    </Button>
+      <Button
+        size="lg"
+        onClick={() => {
+          router.push("/signup");
+        }}
+      >
+        Signup
+      </Button>
 
-    <Button
-      size="lg"
-      onClick={() => {
-        router.push("/login");
-      }}
-    >
-      Login
-    </Button>
+      <Button
+        size="lg"
+        onClick={() => {
+          router.push("/login");
+        }}
+      >
+        Login
+      </Button>
     </>
   );
 };
