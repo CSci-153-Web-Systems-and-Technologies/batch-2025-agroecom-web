@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUserData } from '@/lib/user-data';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 
 interface EquipmentType {
@@ -32,6 +32,11 @@ export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarPro
     type: searchParams.get('type') || '',
     view: searchParams.get('view') || 'marketplace',
   });
+
+  const currentView = searchParams.get('view') || 'marketplace';
+  const isFilterActive = !!searchParams.get('location') || 
+                         !!searchParams.get('type') || 
+                         currentView !== 'marketplace';
 
   const handleLocalChange = (key: string, value: string) => {
     setFilters((prev) => ({
@@ -66,6 +71,14 @@ export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarPro
     params.set('view', defaultView); 
     
     router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleToggleFilter = () => {
+    if (isFilterActive) {
+      handleReset();
+    } else {
+      handleApply();
+    }
   };
 
   return (
@@ -143,10 +156,11 @@ export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarPro
 
       <div className="pt-2">
         <Button 
-          onClick={handleApply} 
-          className="w-full bg-green-600 hover:bg-green-700 text-white"
+          onClick={handleToggleFilter} 
+          variant={isFilterActive ? "default" : "outline"}
+          className="w-full"
         >
-          Apply Filters
+          {isFilterActive ? "Clear Filters" : "Apply Filters"}
         </Button>
       </div>
     </div>
