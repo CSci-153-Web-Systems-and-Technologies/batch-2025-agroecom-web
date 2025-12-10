@@ -27,16 +27,47 @@ export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarPro
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const urlLocation = searchParams.get('location') || '';
+  const urlType = searchParams.get('type') || '';
+  const urlView = searchParams.get('view') || 'marketplace';
+
   const [filters, setFilters] = useState({
-    location: searchParams.get('location') || '',
-    type: searchParams.get('type') || '',
-    view: searchParams.get('view') || 'marketplace',
+    location: urlLocation,
+    type: urlType,
+    view: urlView,
   });
 
-  const currentView = searchParams.get('view') || 'marketplace';
-  const isFilterActive = !!searchParams.get('location') || 
-                         !!searchParams.get('type') || 
-                         currentView !== 'marketplace';
+  const [prevUrlParams, setPrevUrlParams] = useState({
+    location: urlLocation,
+    type: urlType,
+    view: urlView,
+  });
+
+  if (
+    urlLocation !== prevUrlParams.location ||
+    urlType !== prevUrlParams.type ||
+    urlView !== prevUrlParams.view
+  ) {
+
+    setPrevUrlParams({
+      location: urlLocation,
+      type: urlType,
+      view: urlView,
+    });
+
+    setFilters({
+      location: urlLocation,
+      type: urlType,
+      view: urlView,
+    });
+  }
+
+  const isFilterActive = !!urlLocation || !!urlType || urlView !== 'marketplace';
+  
+  const hasPendingChanges = 
+    filters.location !== urlLocation || 
+    filters.type !== urlType || 
+    filters.view !== urlView;
 
   const handleLocalChange = (key: string, value: string) => {
     setFilters((prev) => ({
@@ -57,24 +88,28 @@ export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarPro
     if (filters.view) params.set('view', filters.view);
     else params.delete('view');
 
+    params.set('page', '1');
+
     router.push(`${pathname}?${params.toString()}`);
   };
 
   const handleReset = () => {
     const defaultView = 'marketplace';
-
     setFilters({ location: '', type: '', view: defaultView });
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('location');
     params.delete('type');
-    params.set('view', defaultView); 
+    params.set('view', defaultView);
+    params.set('page', '1');
     
     router.push(`${pathname}?${params.toString()}`);
   };
 
   const handleToggleFilter = () => {
-    if (isFilterActive) {
+    if (hasPendingChanges) {
+      handleApply();
+    } else if (isFilterActive) {
       handleReset();
     } else {
       handleApply();
@@ -108,6 +143,8 @@ export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarPro
             <SelectItem value="Kananga">Kananga</SelectItem>
             <SelectItem value="Isabel">Isabel</SelectItem>
             <SelectItem value="Baybay">Baybay</SelectItem>
+            <SelectItem value="Albuera">Albuera</SelectItem>
+            <SelectItem value="Tacloban">Tacloban</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -157,10 +194,10 @@ export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarPro
       <div className="pt-2">
         <Button 
           onClick={handleToggleFilter} 
-          variant={isFilterActive ? "default" : "outline"}
+          variant={isFilterActive || hasPendingChanges ? "default" : "outline"}
           className="w-full"
         >
-          {isFilterActive ? "Clear Filters" : "Apply Filters"}
+          {hasPendingChanges ? "Apply Filters" : (isFilterActive ? "Clear Filters" : "Apply Filters")}
         </Button>
       </div>
     </div>
