@@ -1,8 +1,6 @@
-"use client";
-
 import Image from "next/image";
 import AuthButton from "@/components/AuthButton";
-import NavLinks from "@/components/nav-links";
+import NavLinks from "@/components/NavLinks";
 
 export default function NavBar() {
   return (
