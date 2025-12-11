@@ -23,8 +23,8 @@ interface EquipmentFormData {
   type: string;
   delivery: string;
   description: string;
+  location: string;
 }
-
 interface AddEquipmentFormProps {
   onSubmit?: () => void; 
   onCancel?: () => void;
@@ -39,9 +39,9 @@ const INITIAL_STATE = {
   type: '',
   delivery: '',
   description: '',
+  location: '', 
 };
 
-// Max file size in bytes (e.g. 5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024; 
 
 export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = false }: AddEquipmentFormProps) {
@@ -49,10 +49,8 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<EquipmentFormData>(INITIAL_STATE);
   
-  // State for image preview
   const [previewUrl, setPreviewUrl] = useState<string>('');
   
-  // Ref to clear the file input element
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isLoading = parentLoading || isSubmitting;
@@ -78,14 +76,13 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
     const file = e.target.files?.[0];
     
     if (file) {
-      // 1. Validate File Size
+
       if (file.size > MAX_FILE_SIZE) {
         toast.error("File is too large. Max size is 5MB.");
-        e.target.value = ''; // Clear the input
+        e.target.value = ''; 
         return;
       }
 
-      // 2. Create Preview
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     }
@@ -96,7 +93,7 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
-    // Clear the native input value so the form doesn't submit the file
+
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -107,7 +104,6 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
     setIsSubmitting(true);
 
     try {
-        // FormData automatically grabs inputs with 'name' attributes, including the file
         const submissionData = new FormData(e.currentTarget);
 
         const result = await addEquipment(submissionData);
@@ -130,8 +126,6 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-        
-      {/* Hidden inputs for Select components */}
       <input type="hidden" name="type_id" value={formData.type} />
       <input type="hidden" name="delivery" value={formData.delivery} />
 
@@ -206,6 +200,22 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
           </Select>
         </div>
       </div>
+    
+      <div className="space-y-2">
+        <label className="text-gray-700 font-medium block">
+          Location <span className="text-red-500">*</span>
+        </label>
+        <Input
+          name="location"
+          placeholder="Enter the equipment's current location (e.g., Ormoc City, Leyte)"
+          value={formData.location}
+          onChange={handleInputChange}
+          required
+          disabled={isLoading}
+          className="border-gray-300"
+        />
+      </div>
+
 
       <div className="space-y-4">
         <label className="text-gray-700 font-medium block">Upload an image</label>
@@ -244,10 +254,10 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
                 <Input
                   id="image-upload"
                   ref={fileInputRef}
-                  name="image" /* CRITICAL: This name matches formData.get('image') */
+                  name="image" 
                   type="file"
                   accept="image/*"
-                  className="hidden" /* Hide standard input, use label as trigger */
+                  className="hidden" 
                   onChange={handleImageUpload}
                   disabled={isLoading}
                 />
@@ -270,9 +280,9 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
             <SelectValue placeholder="Select delivery option" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="pickup">Pickup Only</SelectItem>
-            <SelectItem value="delivery">Delivery Available</SelectItem>
-            <SelectItem value="both">Both Available</SelectItem>
+            <SelectItem value="Pickup">Pickup</SelectItem>
+            <SelectItem value="Delivery">Delivery</SelectItem>
+            <SelectItem value="Hybrid">Hybrid</SelectItem>
           </SelectContent>
         </Select>
       </div>
