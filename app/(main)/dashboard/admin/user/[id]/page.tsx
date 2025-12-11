@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, 
@@ -10,51 +11,101 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import PersonalInfoSkeleton from "../../../components/PersonalInfoSkeleton"
+import AccountInfoSkeleton from "../../../components/AccountInformationSkeleton"
 import PersonalInfo from "@/app/(main)/dashboard/components/PersonalInfo"
 import AccountInformation from "@/app/(main)/dashboard/components/AccountInformation"
-
+import { getUserDetails, UserDetails } from '@/lib/dashboard-actions';
+import { adminDeleteUser } from '@/lib/admin-actions'
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function UserProfileReadOnly() {
+    const params = useParams();
+    const router = useRouter();
+    const userId = params.id as string;
 
-    const[loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); 
+    const [userData, setUserData] = useState<UserDetails | null>(null);
     
     useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 1000)
-        return () => clearTimeout(timer)
-      }, [])
+        async function fetchUser() {
+            if (!userId) return;
+            
+            setLoading(true);
+            const { data, error } = await getUserDetails(userId);
+            
+            if (error) {
+                toast.error("Failed to fetch user details");
+                console.error(error);
+            } else {
+            if (data) {
+                console.log("Fetched User Data:", data);
+                console.log("Attempting to access:",data.first_name);
+            }
+                setUserData(data);
+            }
+            setLoading(false);
+        }
+        fetchUser();
+    }, [userId]);
     
-    const formData = {
-        username: 'Benjie Tech',
-        firstName: 'Nganou',
-        lastName: 'Ngan',
-        email: 'ngannou7@gmail.com',
-        role: 'Lender',
-        accountAge: '8 months',
-        subscription: '5 year subscription'
+    const handleDeleteAccount = async () => {
+        const { error } = await adminDeleteUser(userId);
+        
+        if (error) {
+            toast.error("Failed to delete user");
+            console.error(error);
+        } else {
+            toast.success("User deleted successfully");
+            setIsDeleteDialogOpen(false);
+            router.push('/dashboard/admin/'); 
+        }
     };
 
-    const handleDeleteAccount = () => {
-        console.log('Account deletion confirmed!');
-        setIsDeleteDialogOpen(false); 
-    };
-
-    if(loading)
-    {
+    if (loading) {
+  return (
+    <div className="p-6 grid grid-cols-1 lg:grid-cols-2 max-w-6xl mx-auto">
+      <div className="lg:col-span-2 space-y-6">
         <PersonalInfoSkeleton />
+        <AccountInfoSkeleton />
+      </div>
+    </div>
+  );
+}
+
+    if (!userData) {
+        return <div className="p-6 text-center">User not found</div>;
     }
+
+    let accountAge = 'Unknown';
+    if (userData.created_at) {
+        try {
+            accountAge = formatDistanceToNow(new Date(userData.created_at), { addSuffix: true });
+        } catch (e) {
+            console.error("Date parsing error", e);
+        }
+    }
+
+    const formData = {
+        username: userData.username || '',
+        firstName: userData.first_name || '',
+        lastName: userData.last_name || '',
+        email: userData.email || '',
+        role: userData.role || 'farmer',
+        accountAge: accountAge,
+        subscription: userData.subscription || 'free',
+        contactNumber: userData.contact_number || '',
+        address: userData.address || '',
+        avatarUrl: userData.avatar_url || ''
+    };
 
     return (
         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 max-w-6xl mx-auto">
             <div className="lg:col-span-2 space-y-6">
                 <PersonalInfo 
-                    editable={false} 
-                    initialData={{
-                        username: formData.username,
-                        firstName: formData.firstName,
-                        lastName: formData.lastName,
-                        email: formData.email,
-                    }}
+                    editable={false}
+                    {...formData}
                 />
                 <AccountInformation 
                     initialData={{
@@ -79,7 +130,7 @@ export default function UserProfileReadOnly() {
                                 <div className="mt-4 space-y-2">
                                     <DialogTitle className="text-lg font-semibold">Delete Account?</DialogTitle>
                                     <DialogDescription className="text-sm text-gray-500">
-                                        Deleting your account is irreversible and will erase all the user&apos;s data. This action cannot be undone.
+                                        Deleting this account is irreversible and will erase all the user&apos;s data. This action cannot be undone.
                                     </DialogDescription>
                                 </div>
                             </div>
