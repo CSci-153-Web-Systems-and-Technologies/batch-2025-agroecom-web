@@ -1,71 +1,51 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import AccountInfoSkeleton from './AccountInformationSkeleton'
+import { getAccountDetails } from "@/lib/profile-actions"
+import { toast } from "sonner"
+
+interface AccountData {
+  role: string
+  accountAge: string
+  subscription: string
+}
 
 interface AccountInfoProps {
-  initialData?: {
-    role: string;
-    accountAge: string;
-    subscription: string;
-  };
+  initialData?: AccountData
 }
 
 export default function AccountInformation({ initialData }: AccountInfoProps) {
-  const [loading, setLoading] = useState(true)
-  // const [role, setRole] = useState("")
-  // const [accountAge, setAccountAge] = useState("")
-  // const [subscription, setSubscription] = useState("")
+  const [loading, setLoading] = useState(!initialData)
+  const [data, setData] = useState<AccountData>(initialData || {
+    role: '',
+    accountAge: '',
+    subscription: ''
+  })
 
-  //   async function fetchUserData() {
-  //   const supabase = createClient()
-
-  //   // 1. Get auth user
-  //   const { data: { user } } = await supabase.auth.getUser()
-
-  //   if (!user) {
-  //     setLoading(false)
-  //     return
-  //   }
-
-  //   // 2. Role (from metadata)
-  //   const userRole = user?.app_metadata?.role || user?.user_metadata?.role
-  //   setRole(userRole || "Unknown")
-
-  //   // 3. Compute account age
-  //   const createdAt = user.created_at || ""
-  //   setAccountAge(getAccountAge(createdAt))
-
-  //   // 4. Example: Subscription (mock for now)
-  //   setSubscription("Free Tier")
-
-  //   setLoading(false)
-  // }
-
-  // function getAccountAge(createdAt: string) {
-  //   if (!createdAt) return "Unknown"
-
-  //   const createdDate = new Date(createdAt)
-  //   const now = new Date()
-
-  //   const diff = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
-  //   const months = Math.floor(diff / 30)
-
-  //   if (months < 1) return "Less than 1 month"
-  //   if (months === 1) return "1 month"
-  //   return `${months} months`
-  // }
-
-  // Simulate loading for dev purposes
-  const role = initialData?.role || 'lender'
-  const accountAge = initialData?.accountAge || '5 months'
-  const subscription = initialData?.subscription || '1 year'
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000)
-    return () => clearTimeout(timer)
-  }, [])
+    if (initialData) return
+
+    const loadData = async () => {
+      try {
+        const result = await getAccountDetails()
+        
+        if (result.success && result.data) {
+          setData(result.data as AccountData)
+        } else {
+          toast.error("Failed to load account details")
+        }
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [initialData])
 
   if (loading) {
     return <AccountInfoSkeleton />
@@ -73,31 +53,40 @@ export default function AccountInformation({ initialData }: AccountInfoProps) {
 
   return (
     <Card>
-      <CardHeader className="text-xl font-(--font-geist-sans)">
+      <CardHeader className="text-xl font-semibold">
         Account Information
       </CardHeader>
 
       <CardContent className="space-y-6">
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
           <div className="space-y-2">
             <label className="block text-sm font-medium">Role</label>
-            <Input value={role} readOnly className="bg-gray-50" />
+            <Input 
+              value={data.role} 
+              readOnly 
+              className="bg-muted capitalize" 
+            />
           </div>
 
           <div className="space-y-2">
             <label className="block text-sm font-medium">Account Age</label>
-            <Input value={accountAge} readOnly className="bg-gray-50" />
+            <Input 
+              value={data.accountAge} 
+              readOnly 
+              className="bg-muted" 
+            />
           </div>
         </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium">Subscription Information</label>
-          <Input value={subscription} readOnly className="bg-gray-50" />
+          <Input 
+            value={data.subscription} 
+            readOnly 
+            className="bg-muted" 
+          />
         </div>
-
       </CardContent>
     </Card>
-    )
+  )
 }
