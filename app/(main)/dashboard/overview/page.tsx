@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useUserData } from "@/lib/user-data";
 import { 
   Users, 
@@ -7,44 +8,141 @@ import {
   Briefcase, 
   Package, 
   CheckCircle, 
-  XCircle 
+  XCircle,
 } from "lucide-react";
 
-// Components
-import StatsGrid, { StatItem } from '@/components/StatsGrid';
+import StatsGrid from '@/components/StatsGrid';
+import { StatItem } from '@/types';
 import DonutStatCard from '@/components/DonutStatCard';
 import PopularEquipment from '../components/PopularEquipment';
-import StatisticsChart from '@/components/Analytics'; // Ensure this matches the updated component above
+import StatisticsChart from '@/components/Analytics';
 import RecentReviews from '../components/RecentReviews';
 import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  fetchAdminStats, 
+  fetchLenderStats, 
+  fetchUserGrowthData,
+  fetchRecentReviewsWithLocation,
+  fetchPopularEquipment,
+  fetchRentalGrowthData,
+  MonthlyUserData,
+  MonthlyRentalData, 
+  SingleReview,
+  PopularEquipmentRaw as PopularEquipmentType,
+} from '@/lib/overview-actions';
 
-// ... existing equipment and reviews arrays ...
-const popularEquipment = [
-  { id: 1, name: "Rice Harvester", brand: "Lowol", rentedCount: "2.5k", ratings: 4.5, ratingCount: "4.5k", image: "/api/placeholder/80/80" },
-  { id: 2, name: "Tractor", brand: "John Deere", rentedCount: "1.8k", ratings: 4.7, ratingCount: "3.2k", image: "/api/placeholder/80/80" },
-  { id: 3, name: "Irrigation System", brand: "Rain Bird", rentedCount: "1.2k", ratings: 4.3, ratingCount: "2.1k", image: "/api/placeholder/80/80" }
-];
-
-const recentReviews = [
-  { id: 1, name: "John Doe", location: "Philippines", date: "2026-05-01", rating: 5, comment: "Nice product...", avatar: "/api/placeholder/40/40" },
-  { id: 2, name: "John Farmer", location: "Philippines", date: "2027-05-01", rating: 5, comment: "High quality...", avatar: "/api/placeholder/40/40" },
-  { id: 3, name: "Maria Santos", location: "Philippines", date: "2026-08-15", rating: 4, comment: "Timely delivery...", avatar: "/api/placeholder/40/40" }
-];
-
-
-// IMPROVED: Added 'users' to simulate Admin data in the same object
-const chartData = [
-  { month: 'Jan', rentals: 40, revenue: 2400, users: 120 },
-  { month: 'Feb', rentals: 30, revenue: 1398, users: 135 },
-  { month: 'Mar', rentals: 98, revenue: 2000, users: 160 },
-  { month: 'Apr', rentals: 39, revenue: 2780, users: 210 },
-  { month: 'May', rentals: 48, revenue: 1890, users: 255 },
-];
+interface ChartDataPoint {
+  month: string
+  [key: string]: string | number
+}
 
 export default function Overview() {
   const { user, loading } = useUserData();
+  const [statsLoading, setStatsLoading] = useState(true);
+  
+  const [adminStats, setAdminStats] = useState<StatItem[]>([]);
+  const [lenderStats, setLenderStats] = useState<StatItem[]>([]);
+  
+  const [chartData, setChartData] = useState<MonthlyUserData[] | MonthlyRentalData[]>([]);
+  
+  const [recentReviews, setRecentReviews] = useState<SingleReview[]>([]);
+  const [popularEquipData, setPopularEquipData] = useState<PopularEquipmentType[]>([]);
 
-  if (loading) {
+  const isAdmin = user?.app_metadata?.role === 'admin';
+
+  useEffect(() => {
+    async function loadStats() {
+      if (!user) return;
+      
+      setStatsLoading(true);
+
+      const [reviewsResult, popularResult] = await Promise.all([
+        fetchRecentReviewsWithLocation(),
+        fetchPopularEquipment()
+      ]);
+
+      if (!reviewsResult.error && reviewsResult.reviews) {
+        setRecentReviews(reviewsResult.reviews);
+      }
+
+      if (!popularResult.error && popularResult.popular) {
+        setPopularEquipData(popularResult.popular);
+      }
+      
+      if (isAdmin) {
+        const [statsData, growthData] = await Promise.all([
+          fetchAdminStats(),
+          fetchUserGrowthData(6)
+        ]);
+        
+        if (!statsData.error) {
+          setAdminStats([
+            { title: "Active Accounts", value: statsData.totalAccounts.toLocaleString(), description: "Total registered users", icon: Users, iconColor: "text-gray-500" },
+            { title: "Farmers", value: statsData.farmers.toLocaleString(), description: "Agricultural producers", icon: Sprout, iconColor: "text-green-600" },
+            { title: "Lenders", value: statsData.lenders.toLocaleString(), description: "Equipment providers", icon: Briefcase, iconColor: "text-blue-600" }
+          ]);
+        }
+        
+        if (!growthData.error) {
+          setChartData(growthData.data);
+        }
+      } else {
+
+        const [lenderStatsData, rentalGrowthData] = await Promise.all([
+          fetchLenderStats(user.id),
+          fetchRentalGrowthData(user.id, 6) 
+        ]);
+
+        if (!lenderStatsData.error) {
+          setLenderStats([
+            { 
+              title: "Total Rentals", 
+              value: lenderStatsData.totalRentals.toLocaleString(), 
+              description: "Total transactions", 
+              icon: Briefcase, 
+              iconColor: "text-gray-500" 
+            },
+            { 
+              title: "Approved", 
+              value: lenderStatsData.approved.toLocaleString(), 
+              description: "Approved requests", 
+              icon: CheckCircle, 
+              iconColor: "text-green-500", 
+              valueColor: "text-green-600" 
+            },
+            { 
+              title: "Rejected", 
+              value: lenderStatsData.rejected.toLocaleString(), 
+              description: "Rejected requests", 
+              icon: XCircle, 
+              iconColor: "text-red-500", 
+              valueColor: "text-red-600" 
+            },
+
+            {
+                title: "Total Equipment",
+                value: lenderStatsData.totalEquipment.toLocaleString(),
+                description: "Owned assets",
+                icon: Package,
+                iconColor: "text-blue-500"
+            }
+          ]);
+        }
+
+        if (!rentalGrowthData.error) {
+            setChartData(rentalGrowthData.data);
+        }
+      }
+      
+      setStatsLoading(false);
+    }
+    
+    if (!loading && user) {
+      loadStats();
+    }
+  }, [user, loading, isAdmin]);
+
+  if (loading || statsLoading) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-12 w-1/3" />
@@ -53,29 +151,12 @@ export default function Overview() {
     );
   }
 
-  const role = user?.app_metadata?.role as 'admin' | 'lender';
   const name = user?.user_metadata?.username || user?.user_metadata?.full_name || user?.email?.split('@')[0];
-  const isAdmin = role === 'admin';
+  const currentStats = isAdmin ? adminStats : lenderStats.slice(0, 3);
 
-  // ... existing adminStats and lenderStats ...
-  const adminStats: StatItem[] = [
-    { title: "Active Accounts", value: "1,895", description: "Total registered users", icon: Users, iconColor: "text-gray-500" },
-    { title: "Farmers", value: "1,290", description: "Agricultural producers", icon: Sprout, iconColor: "text-green-600" },
-    { title: "Lenders", value: "605", description: "Equipment providers", icon: Briefcase, iconColor: "text-blue-600" }
-  ];
-
-  const lenderStats: StatItem[] = [
-    { title: "Total Rentals", value: "7,265", description: "+20.1% from last month", icon: Package, iconColor: "text-gray-500" },
-    { title: "Approved", value: "203", description: "This month", icon: CheckCircle, iconColor: "text-green-500", valueColor: "text-green-600" },
-    { title: "Rejected", value: "305", description: "This month", icon: XCircle, iconColor: "text-red-500", valueColor: "text-red-600" }
-  ];
-
-  const currentStats = isAdmin ? adminStats : lenderStats;
-
-  // --- NEW: LOGIC TO CONFIGURE CHART BASED ON ROLE ---
   const chartConfig = isAdmin 
-    ? { title: "Platform Growth (New Users)", dataKey: "users", color: "#10b981" } // Green for Admin
-    : { title: "Monthly Rentals", dataKey: "rentals", color: "hsl(var(--primary))" }; // Primary for Lender
+    ? { title: "Platform Growth (New Users)", dataKey: "users", color: "#10b981" } 
+    : { title: "Monthly Rentals", dataKey: "rentals", color: "hsl(var(--primary))" }; 
 
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
@@ -97,40 +178,38 @@ export default function Overview() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
           
-          {/* --- IMPROVED USAGE --- */}
           <StatisticsChart 
-            data={chartData} 
+            data={chartData as unknown as ChartDataPoint[]} 
             title={chartConfig.title} 
             dataKey={chartConfig.dataKey}
             color={chartConfig.color}
           />
           
-          {!isAdmin && (
+          {!isAdmin && lenderStats && (
             <DonutStatCard 
-                title="Total Customers"
-                value={7265}
-                label="Customers"
-                icon={Users}
+                title="Total Equipment"
+                value={lenderStats.find(s => s.title === "Total Equipment")?.value || 0}
+                label="Equipment"
+                icon={Package}
                 color="var(--nav-bg)" 
             />
           )}
-          {isAdmin && (
+          {isAdmin && adminStats && (
             <DonutStatCard 
                 title="Total User Base"
-                value={1895}
+                value={adminStats.find(s => s.title === "Active Accounts")?.value || 0}
                 label="Active Users"
                 icon={Users}
-                growthPercentage={5.4}
                 color="#10b981" 
             />
           )}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <PopularEquipment equipment={popularEquipment} />
+          <PopularEquipment popular={popularEquipData} />
+          
           <RecentReviews reviews={recentReviews} />
         </div>
-
       </main>
     </div>
   )
