@@ -10,7 +10,7 @@ export default function ContactDetails() {
             </CardTitle>
             <CardContent className="p-4">
                 <p className="text-gray-600 mb-6">
-                    If you get any question, please consider contacting us. We reply within 24 hours!
+                    If you get any question, please don&apos;t hesitate to contact us. We reply within 24 hours!
                 </p>
                 <div className="space-y-4">
                     <div className="flex items-start space-x-3">
