@@ -10,7 +10,6 @@ export default function AboutHero() {
         fill
         priority
         className="object-cover object-center hidden brightness-50 md:block"
-        quality={90}
       />
       <div className="relative z-10 flex flex-col items-center">
         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 font-poppins">
