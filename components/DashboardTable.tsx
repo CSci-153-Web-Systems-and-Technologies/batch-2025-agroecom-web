@@ -4,16 +4,18 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
-import { User, Clock, CheckCircle, XCircle, Eye, ChevronRight, ChevronLeft, Shield, UserCog } from "lucide-react";
+import { User, Clock, CheckCircle, XCircle, Eye, ChevronRight, ChevronLeft, Shield, UserCog, Loader2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useImperativeHandle, forwardRef, useMemo, useState } from "react";
+import { useImperativeHandle, forwardRef, useState, useEffect, useCallback } from "react";
 import { exportRentals, exportUsers, type ExportFormat } from "@/utils/export";
+import { fetchDashboardUsers, fetchDashboardRentals } from "@/lib/dashboard-actions";
+import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 10;
 
 type UserRole = 'lender' | 'admin';
 export type RentalStatus = 'all' | 'pending' | 'approved' | 'rejected';
-export type UserRoleFilter = 'all' | 'admin' | 'lender' | 'renter';
+export type UserRoleFilter = 'all' | 'admin' | 'lender' | 'farmer';
 
 export interface RentalData {
   id: string;
@@ -33,7 +35,7 @@ export interface UserData {
   email: string;
   date: string;
   location: string;
-  role: 'admin' | 'lender' | 'renter';
+  role: 'admin' | 'lender' | 'farmer';
   roleText: string;
 }
 
@@ -49,82 +51,20 @@ export interface DashboardTableRef {
   getFilteredData: () => RentalData[] | UserData[];
 }
 
-const rentalData: RentalData[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    equipment: 'Tractor X200',
-    date: 'Dec 1, 2025',
-    duration: '3 days',
-    location: 'Manila',
-    email: 'john.doe@example.com',
-    status: 'pending',
-    statusText: 'Pending',
-  },
-  {
-    id: '2',
-    name: 'Doe John',
-    equipment: 'Tractor X200',
-    date: 'Dec 5, 2025',
-    duration: '3 days',
-    location: 'Manila',
-    email: 'doe.johm@example.com',
-    status: 'pending',
-    statusText: 'Pending',
-  }
-];
-
-const userData: UserData[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    date: 'Jan 15, 2024',
-    location: 'Manila',
-    role: 'lender',
-    roleText: 'Lender'
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane.smith@example.com',
-    date: 'Feb 20, 2024',
-    location: 'Cebu',
-    role: 'renter',
-    roleText: 'Renter'
-  },
-  {
-    id: '3',
-    name: 'Admin User',
-    email: 'admin@agroecom.com',
-    date: 'Jan 1, 2024',
-    location: 'Manila',
-    role: 'admin',
-    roleText: 'Admin'
-  },
-];
-
 const getRoleBadgeColor = (role: string) => {
   switch (role) {
-    case 'admin':
-      return 'bg-purple-100 text-purple-800';
-    case 'lender':
-      return 'bg-blue-100 text-blue-800';
-    case 'renter':
-      return 'bg-green-100 text-green-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+    case 'admin': return 'bg-purple-100 text-purple-800';
+    case 'lender': return 'bg-blue-100 text-blue-800';
+    case 'renter': return 'bg-green-100 text-green-800';
+    default: return 'bg-gray-100 text-gray-800';
   }
 };
 
 const getRoleIcon = (role: string) => {
   switch (role) {
-    case 'admin':
-      return <Shield className="mr-1 h-3 w-3" />;
-    case 'lender':
-      return <UserCog className="mr-1 h-3 w-3" />;
-    default:
-      return <User className="mr-1 h-3 w-3" />;
+    case 'admin': return <Shield className="mr-1 h-3 w-3" />;
+    case 'lender': return <UserCog className="mr-1 h-3 w-3" />;
+    default: return <User className="mr-1 h-3 w-3" />;
   }
 };
 
@@ -132,65 +72,50 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
   function DashboardTable({ userRole, statusFilter = 'all', roleFilter = 'all', searchQuery = '' }, ref) {
   const router = useRouter();
   const pathname = usePathname();
-  const [currentPage, setCurrentPage] = useState(1);
   
+  const [currentPage, setCurrentPage] = useState(1);
+  const [tableData, setTableData] = useState<(RentalData | UserData)[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(true);
+
   const isAdmin = userRole === 'admin';
   const title = isAdmin ? 'User Accounts' : 'Review';
 
-  const filteredData = useMemo(() => {
-    if (isAdmin) {
-      let filtered = [...userData];
-      
-      if (roleFilter !== 'all') {
-        filtered = filtered.filter(item => item.role === roleFilter);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (isAdmin) {
+        const result = await fetchDashboardUsers(currentPage, searchQuery, roleFilter);
+        if (result.error) throw new Error(result.error);
+        setTableData(result.data as UserData[]);
+        setTotalItems(result.total);
+      } else {
+        const result = await fetchDashboardRentals(currentPage, searchQuery, statusFilter);
+        if (result.error) throw new Error(result.error);
+        setTableData(result.data as RentalData[]);
+        setTotalItems(result.total);
       }
-      
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(item =>
-          item.name.toLowerCase().includes(query) ||
-          item.email.toLowerCase().includes(query) ||
-          item.location.toLowerCase().includes(query)
-        );
-      }
-      
-      return filtered;
-    } else {
-      let filtered = [...rentalData];
-      
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter(item => item.status === statusFilter);
-      }
-      
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(item =>
-          item.name.toLowerCase().includes(query) ||
-          item.email.toLowerCase().includes(query) ||
-          item.equipment.toLowerCase().includes(query) ||
-          item.location.toLowerCase().includes(query)
-        );
-      }
-      
-      return filtered;
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch dashboard data");
+      setTableData([]);
+    } finally {
+      setLoading(false);
     }
-  }, [isAdmin, statusFilter, roleFilter, searchQuery]);
+  }, [isAdmin, currentPage, searchQuery, roleFilter, statusFilter]);
 
-  // Pagination calculations
-  const totalItems = filteredData.length;
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter]);
+
+
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
-  
-  // Clamp currentPage to valid range when filters change
-  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
-  
-  // Reset page if it's out of bounds
-  if (validCurrentPage !== currentPage) {
-    setCurrentPage(validCurrentPage);
-  }
-  
-  const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedData = filteredData.slice(startIndex, endIndex);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -198,7 +123,6 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
     }
   };
 
-  // Generate page numbers to display
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisiblePages = 5;
@@ -208,13 +132,13 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
         pages.push(i);
       }
     } else {
-      if (validCurrentPage <= 3) {
+      if (currentPage <= 3) {
         for (let i = 1; i <= 4; i++) {
           pages.push(i);
         }
         pages.push('...');
         pages.push(totalPages);
-      } else if (validCurrentPage >= totalPages - 2) {
+      } else if (currentPage >= totalPages - 2) {
         pages.push(1);
         pages.push('...');
         for (let i = totalPages - 3; i <= totalPages; i++) {
@@ -223,7 +147,7 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
       } else {
         pages.push(1);
         pages.push('...');
-        for (let i = validCurrentPage - 1; i <= validCurrentPage + 1; i++) {
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
           pages.push(i);
         }
         pages.push('...');
@@ -233,29 +157,24 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
     return pages;
   };
 
-  const tableData = paginatedData;
-
   useImperativeHandle(ref, () => ({
     exportData: (format: ExportFormat = 'csv') => {
       if (isAdmin) {
-        const userExportData = (filteredData as UserData[]).map(({ id, name, email, date, location, role }) => ({
-          id, name, email, date, location, role
-        }));
-        exportUsers(userExportData, format);
+        exportUsers(tableData as UserData[], format);
       } else {
-        const rentalExportData = (filteredData as RentalData[]).map(({ id, name, equipment, date, duration, location, email, status }) => ({
-          id, name, equipment, date, duration, location, email, status
-        }));
-        exportRentals(rentalExportData, format);
+        exportRentals(tableData as RentalData[], format);
       }
     },
-    getFilteredData: () => filteredData
-  }), [isAdmin, filteredData]);
+    getFilteredData: () => tableData as unknown as UserData[] | RentalData[]
+  }), [isAdmin, tableData]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle>{title}</CardTitle>
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">
@@ -271,7 +190,18 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tableData.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><div className="h-4 w-24 bg-gray-200 rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 w-16 bg-gray-200 rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 w-20 bg-gray-200 rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 w-32 bg-gray-200 rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-6 w-16 bg-gray-200 rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-8 w-16 bg-gray-200 rounded animate-pulse" /></TableCell>
+                  </TableRow>
+                ))
+              ) : tableData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
@@ -322,7 +252,11 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
                         </div>
                       ) : (
                         'status' in item && (
-                          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">
+                          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                            item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                            item.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
                             {item.status === 'pending' && <Clock className="mr-1 h-3 w-3" />}
                             {item.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}
                             {item.status === 'rejected' && <XCircle className="mr-1 h-3 w-3" />}
@@ -334,17 +268,15 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
                     <TableCell className="text-right">
                       <div className="flex items-center justify-start gap-2">
                         {isAdmin ? (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="gap-1 hover:bg-gray-100"
-                              onClick={() => router.push(`${pathname}/user/${item.id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                              View
-                            </Button>
-                          </>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="gap-1 hover:bg-gray-100"
+                            onClick={() => router.push(`${pathname}/user/${item.id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
                         ) : (
                           <Button 
                             variant="ghost" 
@@ -368,7 +300,7 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
 
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-gray-500">
-            Showing {totalItems === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries
+            Showing {totalItems === 0 ? 0 : startIndex + 1} to {endIndex} of {totalItems} entries
           </div>
           
           {totalPages > 1 && (
@@ -378,8 +310,8 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
                   <Button 
                     variant="ghost" 
                     className="gap-2"
-                    disabled={validCurrentPage === 1}
-                    onClick={() => handlePageChange(validCurrentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                    onClick={() => handlePageChange(currentPage - 1)}
                   >
                     <ChevronLeft className="h-4 w-4" />
                     <span>Previous</span>
@@ -393,10 +325,10 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
                     ) : (
                       <PaginationLink 
                         href="#" 
-                        isActive={validCurrentPage === page}
+                        isActive={currentPage === page}
                         onClick={(e) => {
                           e.preventDefault();
-                          handlePageChange(page as number);
+                          if (!loading) handlePageChange(page as number);
                         }}
                       >
                         {page}
@@ -409,8 +341,8 @@ const DashboardTable = forwardRef<DashboardTableRef, DashboardTableProps>(
                   <Button 
                     variant="ghost" 
                     className="gap-2"
-                    disabled={validCurrentPage === totalPages}
-                    onClick={() => handlePageChange(validCurrentPage + 1)}
+                    disabled={currentPage === totalPages || loading}
+                    onClick={() => handlePageChange(currentPage + 1)}
                   >
                     <span>Next</span>
                     <ChevronRight className="h-4 w-4" />
