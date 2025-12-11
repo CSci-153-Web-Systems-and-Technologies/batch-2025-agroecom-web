@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Filter, Calendar } from "lucide-react"
+import { Search, Filter } from "lucide-react"
 import { type RentalStatus, type UserRoleFilter } from "@/components/DashboardTable"
 
 interface BaseFilterProps {
