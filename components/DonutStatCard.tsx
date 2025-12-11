@@ -6,8 +6,6 @@ interface DonutStatCardProps {
   value: number | string
   label: string
   icon: LucideIcon
-  growthPercentage?: number
-  growthPeriod?: string
   color?: string
 }
 
@@ -16,8 +14,6 @@ export default function DonutStatCard({
   value, 
   label, 
   icon: Icon, 
-  growthPercentage = 12, 
-  growthPeriod = "this quarter",
   color = "var(--nav-bg)" 
 }: DonutStatCardProps) {
   return (
@@ -29,7 +25,7 @@ export default function DonutStatCard({
         <div className="flex flex-col items-center justify-center py-8 space-y-4">
           <div className="relative">
             <div 
-              className="h-32 w-32 rounded-full border-8 transition-colors duration-300" 
+              className="h-50 w-50 rounded-full border-8 transition-colors duration-300" 
               style={{ borderColor: color }}
             >
               <div className="flex h-full items-center justify-center">
@@ -46,10 +42,6 @@ export default function DonutStatCard({
               </div>
             </div>
           </div>
-
-          <p className="text-center text-sm text-gray-600">
-            <span className="font-semibold text-green-600">+{growthPercentage}%</span> growth {growthPeriod}
-          </p>
         </div>
       </CardContent>
     </Card>
