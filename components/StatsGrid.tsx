@@ -1,16 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LucideIcon } from "lucide-react"
-
-export interface StatItem {
-  title: string
-  value: string | number
-  description?: string
-  icon: LucideIcon
-  iconColor?: string 
-  valueColor?: string 
-}
+import { StatItem } from '@/types'
 
 interface StatsGridProps {
   stats: StatItem[]
