@@ -3,8 +3,6 @@
 import { ReactNode } from "react"
 import SideBar from "@/components/app-sidebar" 
 import { useUserData } from '@/lib/user-data'
-import { RentalProvider } from "@/contexts/RentalContext"
-
 interface DashboardLayoutProps {
     children: ReactNode
 }
@@ -16,16 +14,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const userName = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'
 
     return (
-        <RentalProvider>
-            <div className="flex min-h-screen">
-                <SideBar 
-                    userRole={userRole} 
-                    userName={userName} 
-                />
-                <div className="flex-1 overflow-auto p-4">
-                    {children}
-                </div>
-            </div>
-        </RentalProvider>
+    <div className="flex min-h-screen">
+        <SideBar 
+            userRole={userRole} 
+            userName={userName} 
+        />
+        <div className="flex-1 overflow-auto p-4">
+            {children}
+        </div>
+    </div>
     )
 }
