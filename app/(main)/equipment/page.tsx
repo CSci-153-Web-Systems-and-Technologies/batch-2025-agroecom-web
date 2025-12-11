@@ -26,7 +26,7 @@ export default async function EquipmentPage() {
             </div>
           </div>
           <div className="lg:col-span-9">
-            <EquipmentListClient  />
+            <EquipmentList  />
           </div>
         </div>
       </main>
