@@ -1,45 +1,47 @@
 import { CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 
-export default function SignupLoginHero()
-{
-    return (
-        <div className="relative overflow-hidden bg-black text-white hidden lg:col-span-3 lg:flex flex-col justify-center items-center p-12 lg:p-30">
-        <Image
-            src="/Hero_bg.jpg"  
-            alt="Modern Farming"
-            fill
-            priority
-            className="object-cover object-center hidden brightness-50 md:block"
-            quality={90}
-        />
-        <div className="relative z-20 max-w-sm">
-          <h1 className="text-6xl font-normal mb-4 tracking-tight">
-            AGROECOM
-          </h1>
-          <p className="text-base font-bold mb-20 leading-6 text-gray-200">
-            A dedicated marketplace for farmers who wants to rent farming equipments
-          </p>
+export default function SignupLoginHero() {
+  const features = [
+    "Easy Transaction",
+    "Variety of farming equipment",
+    "Improve Productivity",
+    "Reduce Overall Cost"
+  ]
 
-          <ul className="space-y-3">
-            <li className="flex items-center text-base font-normal">
-              <CheckCircle className="w-5 h-5 mr-3 text-nav-hover" /> {/* Assuming nav-hover is the highlight color */}
-              Easy Transaction
-            </li>
-            <li className="flex items-center text-base font-normal">
-              <CheckCircle className="w-5 h-5 mr-3 text-nav-hover" />
-              Variety of farming equipment
-            </li>
-            <li className="flex items-center text-base font-normal">
-              <CheckCircle className="w-5 h-5 mr-3 text-nav-hover" />
-              Improve Productivity
-            </li>
-            <li className="flex items-center text-base font-normal">
-              <CheckCircle className="w-5 h-5 mr-3 text-nav-hover" />
-              Reduce Overall Cost
-            </li>
-          </ul>
-        </div>
+  return (
+    <div className="relative hidden h-full flex-col justify-center items-center bg-black p-12 text-white lg:col-span-3 lg:flex">
+      
+      <div className="absolute inset-0 overflow-hidden">
+        <Image
+          src="/Hero_bg.jpg"
+          alt="Modern Farming"
+          fill
+          priority
+          className="object-cover object-center opacity-50" 
+          quality={90}
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
       </div>
-    )
+
+      <div className="relative z-20 max-w-lg w-full">
+        <h1 className="text-6xl font-extrabold mb-6 tracking-tight font-poppins">
+          AGROECOM
+        </h1>
+        
+        <p className="text-lg font-medium mb-12 leading-relaxed text-gray-200">
+          A dedicated marketplace for farmers who want to rent farming equipment efficiently and affordably.
+        </p>
+
+        <ul className="space-y-5">
+          {features.map((item, index) => (
+            <li key={index} className="flex items-center text-lg font-medium">
+              <CheckCircle className="w-6 h-6 mr-4 text-(--nav-hover) shrink-0" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
 }
