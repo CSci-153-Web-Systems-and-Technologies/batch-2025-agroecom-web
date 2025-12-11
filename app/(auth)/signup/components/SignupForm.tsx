@@ -1,10 +1,14 @@
-import React from 'react';
+'use client' 
+
+import React, { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signup } from "@/lib/auth-actions";
 import Link from "next/link";
+import { toast } from "sonner"; 
+import Image from "next/image"
 
 import {
   Card,
@@ -16,16 +20,37 @@ import {
 } from "@/components/ui/card";
 
 export default function SignupForm() {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (formData: FormData) => {
+    const pass = formData.get("password") as string;
+    const confirmPass = formData.get("confirmPassword") as string;
+
+    if (pass !== confirmPass) {
+      setError("Passwords do not match");
+      toast.error("Passwords do not match");
+      return; 
+    }
+
+    setError(null); 
+    
+    await signup(formData);
+  };
+
   return (
     <div className="flex min-h-screen w-full font-inter bg-white">
       <div className="flex w-full items-center justify-center p-8">
         <Card className="w-full max-w-[480px] border-0 shadow-none">
           <CardHeader className="flex flex-col items-center space-y-0 pb-6">
-            <div className="mb-6 flex justify-center">
+              <div className="mb-6 flex justify-center">
               <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-[#0096FF] overflow-hidden shadow-sm">
-                 <img 
-                   src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" 
+                 <Image 
+                   src="/nav_logo.png" 
                    alt="Avatar" 
+                   width={96}
+                   height={96}
                    className="h-full w-full object-cover scale-110"
                  />
               </div>
@@ -43,7 +68,7 @@ export default function SignupForm() {
             </div>
           </CardHeader>
 
-          <form action={signup}>
+          <form action={handleSubmit}>
             <CardContent className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-gray-900 font-medium text-sm">Username</Label>
@@ -70,21 +95,42 @@ export default function SignupForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-900 font-medium text-sm">Enter Password</Label>
+                <Label htmlFor="password" className="text-gray-900 font-medium text-sm">Password</Label>
                 <Input 
                   id="password" 
                   name="password"
                   type="password" 
-                  placeholder="password" 
+                  placeholder="••••••••" 
                   className="h-12 border-gray-200 bg-white rounded-[10px] focus-visible:ring-[#008000]"
                   required
                   minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <p className="text-xs text-gray-500 font-normal">Must be at least 6 characters long.</p>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-gray-900 font-medium text-sm">Confirm Password</Label>
+                <Input 
+                  id="confirmPassword" 
+                  name="confirmPassword"
+                  type="password" 
+                  placeholder="••••••••" 
+                  className={`h-12 border-gray-200 bg-white rounded-[10px] focus-visible:ring-[#008000] ${error ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
+                />
+                {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+              </div>
+
             </CardContent>
 
-            <CardFooter className="flex flex-col space-y-6 pt-2">
+            <CardFooter className="flex flex-col space-y-6 pt-6">
               <Button 
                 type="submit"
                 className="w-full h-12 text-sm font-medium bg-[#008000] hover:bg-[#22C55E] text-white rounded-[10px] transition-colors"
