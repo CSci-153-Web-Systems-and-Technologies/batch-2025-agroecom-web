@@ -3,15 +3,13 @@ import { Star } from "lucide-react"
 import Image from "next/image"
 
 interface Equipment {
-  id: number
+  id: string
   name: string
   brand: string
-  rentedCount: string
-  ratings: number
-  ratingCount: string
-  image: string
+  rental_count: string
+  average_rating: number
+  total_reviews: number
 }
-
 interface PopularEquipmentProps {
   equipment: Equipment[]
 }
@@ -40,12 +38,14 @@ export default function PopularEquipment({ equipment }: PopularEquipmentProps) {
                   <p className="text-sm text-gray-500">{item.brand}</p>
                   <div className="flex items-center gap-2">
                     <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm">{item.ratings} ({item.ratingCount})</span>
+                    <span className="text-sm">
+                      {item.average_rating} ({item.total_reviews})
+                    </span>
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-semibold">{item.rentedCount} rented</div>
+                <div className="font-semibold">{item.rental_count} rented</div>
               </div>
             </div>
           ))}
