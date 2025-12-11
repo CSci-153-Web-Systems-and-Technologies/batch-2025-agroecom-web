@@ -132,8 +132,8 @@ export default function RentalsFilter(props: RentalsFilterProps) {
                   Lender
                 </Button>
                 <Button 
-                  variant={filter === "renter" ? "default" : "outline"} 
-                  className={`px-3 ${filter === "renter" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                  variant={filter === "farmer" ? "default" : "outline"} 
+                  className={`px-3 ${filter === "farmer" ? "bg-green-500 hover:bg-green-600" : ""}`}
                   onClick={() => handleFilter("renter")}
                   disabled={!isFilterActive}
                 >
