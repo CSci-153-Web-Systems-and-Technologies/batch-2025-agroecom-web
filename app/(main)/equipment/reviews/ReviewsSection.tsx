@@ -1,91 +1,82 @@
 'use client'
-import React, { useState,  } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReviewItem from './ReviewItem'
+import { getEquipmentReviews } from '@/lib/equipment-actions'
+import { Loader2, MessageSquare, Star } from 'lucide-react'
 
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationPrevious,
-  PaginationNext,
-  PaginationLink,
-} from '@/components/ui/pagination';
-
-type Review = {
-  user: string;
-  date: string;
-  rating: number;
-  location: string;
+export interface ReviewData {
+  id: string;
+  user_id: string;
+  equipment_id: string;
+  rating_count: number;
   comment: string;
-  role: string;
-};
+  created_at: string;
+  users: {
+    first_name: string;
+    last_name: string;
+    address: string;
+  } | null;
+}
 
-interface ReviewItemProps {
-  user: string;
-  date: string;
-  rating: number;
-  location: string;
-  comment: string;
-  role: string;
-};
+interface ReviewsSectionProps {
+  equipmentId: string;
+}
 
-export default function ReviewsSection({ reviews }: { reviews: ReviewItemProps[] }) {
-    const [currentPage, setCurrentPage] = useState(1);
-    const reviewsPerPage = 4;
+export default function ReviewsSection({ equipmentId }: ReviewsSectionProps) {
+    const [reviews, setReviews] = useState<ReviewData[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     
-    const totalPages = Math.ceil(reviews.length / reviewsPerPage);
-    
-    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+    useEffect(() => {
+      async function fetchReviews() {
+        setIsLoading(true);
+        const data = await getEquipmentReviews(equipmentId);
+        setReviews((data as unknown as ReviewData[]) || []);
+        setIsLoading(false);
+      }
+      
+      if (equipmentId) {
+        fetchReviews();
+      }
+    }, [equipmentId]);
 
-    const indexOfLastReview = currentPage * reviewsPerPage;
-    const indexOfFirstReview = indexOfLastReview - reviewsPerPage;
-    const currentReviews = reviews.slice(indexOfFirstReview, indexOfLastReview);
+    if (isLoading) {
+      return (
+        <div className="py-12 flex flex-col items-center justify-center text-gray-400">
+          <Loader2 className="h-8 w-8 animate-spin mb-2" />
+          <p className="text-sm">Loading reviews...</p>
+        </div>
+      );
+    }
 
     return (
-        <div className="p-4 border-t">
-            <div className="h-[400px] pt-2 overflow-auto">
-                {currentReviews.length > 0 ? (
-                    currentReviews.map((review: Review, index: number) => (
-                        <ReviewItem key={index} review={review} />
+        <div className="pt-8 pb-4">
+            <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg">
+                    <MessageSquare className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">
+                    Reviews 
+                    <span className="ml-2 text-base font-normal text-gray-500">
+                        ({reviews.length})
+                    </span>
+                </h3>
+            </div>
+
+            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                {reviews.length > 0 ? (
+                    reviews.map((review) => (
+                        <ReviewItem key={review.id} review={review} />
                     ))
                 ) : (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-gray-500">No reviews to display</p>
+                    <div className="flex flex-col items-center justify-center h-[200px] bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-100">
+                        <div className="p-4 bg-white rounded-full shadow-sm mb-3">
+                            <Star className="w-6 h-6 text-gray-300" />
+                        </div>
+                        <p className="font-medium text-gray-900">No reviews yet</p>
+                        <p className="text-sm text-gray-500">Be the first to share your experience!</p>
                     </div>
                 )}
             </div>
-
-            {totalPages > 1 && (
-                <div className="pt-4">
-                    <Pagination>
-                        <PaginationPrevious
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            aria-disabled={currentPage === 1}
-                            className={currentPage === 1 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-                        />
-
-                        <PaginationContent>
-                            {pageNumbers.map((page) => (
-                                <PaginationItem key={page}>
-                                    <PaginationLink
-                                        onClick={() => setCurrentPage(page)}
-                                        isActive={page === currentPage}
-                                        className="cursor-pointer"
-                                    >
-                                        {page}
-                                    </PaginationLink>
-                                </PaginationItem>
-                            ))}
-                        </PaginationContent>
-
-                        <PaginationNext
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            aria-disabled={currentPage === totalPages}
-                            className={currentPage === totalPages ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-                        />
-                    </Pagination>
-                </div>
-            )}
         </div>
     );
 }
