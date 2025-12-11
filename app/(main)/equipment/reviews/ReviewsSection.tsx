@@ -4,6 +4,15 @@ import ReviewItem from './ReviewItem'
 import { getEquipmentReviews } from '@/lib/equipment-actions'
 import { Loader2, MessageSquare, Star } from 'lucide-react'
 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationLink,
+} from '@/components/ui/pagination';
+
 export interface ReviewData {
   id: string;
   user_id: string;
@@ -15,6 +24,7 @@ export interface ReviewData {
     first_name: string;
     last_name: string;
     address: string;
+    avatar_url?: string; 
   } | null;
 }
 
@@ -24,20 +34,35 @@ interface ReviewsSectionProps {
 
 export default function ReviewsSection({ equipmentId }: ReviewsSectionProps) {
     const [reviews, setReviews] = useState<ReviewData[]>([]);
+    const [totalCount, setTotalCount] = useState(0); 
     const [isLoading, setIsLoading] = useState(true);
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const reviewsPerPage = 4;
     
     useEffect(() => {
       async function fetchReviews() {
         setIsLoading(true);
-        const data = await getEquipmentReviews(equipmentId);
-        setReviews((data as unknown as ReviewData[]) || []);
+        const result = await getEquipmentReviews(equipmentId, currentPage, reviewsPerPage);
+        
+        setReviews((result.data as unknown as ReviewData[]) || []);
+        setTotalCount(result.count || 0);
         setIsLoading(false);
       }
       
       if (equipmentId) {
         fetchReviews();
       }
-    }, [equipmentId]);
+    }, [equipmentId, currentPage]); 
+
+    const totalPages = Math.ceil(totalCount / reviewsPerPage);
+    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
 
     if (isLoading) {
       return (
@@ -51,18 +76,18 @@ export default function ReviewsSection({ equipmentId }: ReviewsSectionProps) {
     return (
         <div className="pt-8 pb-4">
             <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-lg">
+                <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
                     <MessageSquare className="w-5 h-5" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">
                     Reviews 
                     <span className="ml-2 text-base font-normal text-gray-500">
-                        ({reviews.length})
+                        ({totalCount})
                     </span>
                 </h3>
             </div>
 
-            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+            <div className="space-y-1 min-h-[200px]">
                 {reviews.length > 0 ? (
                     reviews.map((review) => (
                         <ReviewItem key={review.id} review={review} />
@@ -77,6 +102,40 @@ export default function ReviewsSection({ equipmentId }: ReviewsSectionProps) {
                     </div>
                 )}
             </div>
+
+            {totalPages > 1 && (
+                <div className="mt-6 flex justify-center">
+                    <Pagination>
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious 
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                            </PaginationItem>
+                            
+                            {pageNumbers.map((page) => (
+                                <PaginationItem key={page}>
+                                    <PaginationLink 
+                                        isActive={page === currentPage}
+                                        onClick={() => handlePageChange(page)}
+                                        className="cursor-pointer"
+                                    >
+                                        {page}
+                                    </PaginationLink>
+                                </PaginationItem>
+                            ))}
+
+                            <PaginationItem>
+                                <PaginationNext 
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+            )}
         </div>
     );
 }
