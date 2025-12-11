@@ -206,7 +206,7 @@ export default function Overview() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <PopularEquipment popular={popularEquipData} />
+          <PopularEquipment equipment={popularEquipData} />
           
           <RecentReviews reviews={recentReviews} />
         </div>
