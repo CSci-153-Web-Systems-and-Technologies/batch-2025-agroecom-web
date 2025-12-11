@@ -62,7 +62,7 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  const allowedPaths = ['/', '/dashboard', '/about', '/equipment', '/contacts', '/login', '/signup', '/dashboard']
+  const allowedPaths = ['/', '/dashboard', '/about', '/equipment', '/contacts', '/login', '/signup']
   const isAllowed = allowedPaths.includes(currentPath)
 
   if (!user && !isAllowed) {
