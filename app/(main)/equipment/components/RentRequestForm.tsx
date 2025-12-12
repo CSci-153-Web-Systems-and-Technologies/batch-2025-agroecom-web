@@ -12,7 +12,7 @@ import {
   CalendarIcon, 
   Clock, 
   MapPin, 
-  User, 
+  User as UserIcon, 
   Mail, 
   Phone, 
   Info,
@@ -22,6 +22,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useParams } from 'next/navigation';
 
+import { useUserData } from "@/lib/user-data"; 
+
 interface RentRequestFormProps {
   ownerId?: string;      
   equipmentId?: string;  
@@ -30,13 +32,17 @@ interface RentRequestFormProps {
 export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: propEquipmentId }: RentRequestFormProps) {
   const params = useParams();
   const equipmentId = propEquipmentId || (params.id as string); 
+
+  const { user, loading: userLoading } = useUserData();
   
-  const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [equipmentLoading, setEquipmentLoading] = useState(true);
   
   const [ownerId, setOwnerId] = useState(propOwnerId || "");
   const [equipmentName, setEquipmentName] = useState(""); 
   
+  const [todayDate, setTodayDate] = useState("");
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -65,15 +71,35 @@ export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: pro
     };
   };
 
-  const [todayDate, setTodayDate] = useState("");
+  useEffect(() => {
+    if (user && !userLoading) {
+        const metadata = user?.user_metadata;
+        const firstname = metadata?.first_name || metadata?.full_name?.split(' ')[0] || "";
+        const lastname = metadata?.last_name || metadata?.full_name?.split(' ').slice(1).join(' ') || "";
+        const contactNumber = metadata?.contact_number || user.phone || "";
+
+        setForm(prev => ({
+          ...prev,
+          firstName: firstname || "",
+          lastName: lastname || "",
+          email: user.email || "",
+          contact: contactNumber
+        }));
+    }
+  }, [user, userLoading]);
 
   useEffect(() => {
     setTodayDate(getLocalNow().date);
 
-    async function fetchData() {
+    async function fetchEquipmentData() {
+      if (propOwnerId && equipmentName) {
+         setEquipmentLoading(false);
+         return;
+      }
+
       const supabase = createClient();
       
-      if (!propOwnerId && equipmentId) {
+      if (equipmentId) {
         const { data: equipment, error: eqError } = await supabase
           .from('equipment')
           .select('user_id, name')
@@ -81,35 +107,16 @@ export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: pro
           .single();
 
         if (equipment && !eqError) {
-          setOwnerId(equipment.user_id);
+          if (!propOwnerId) setOwnerId(equipment.user_id);
           setEquipmentName(equipment.name);
         }
       }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, email, contact_number') 
-          .eq('id', user.id)
-          .single();
-
-        if (profile) {
-          setForm(prev => ({
-            ...prev,
-            firstName: profile.first_name || "",
-            lastName: profile.last_name || "",
-            email: user.email || profile.email || "",
-            contact: profile.contact_number || ""
-          }));
-        }
-      }
-      setTimeout(() => setDataLoading(false), 500);
+      setEquipmentLoading(false);
     }
 
-    fetchData();
-  }, [equipmentId, propOwnerId]);
+    fetchEquipmentData();
+  }, [equipmentId, propOwnerId, equipmentName]);
+
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void {
     const { name, value } = e.target;
@@ -157,7 +164,7 @@ export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: pro
          return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const result = await submitRentalRequest(form as unknown as RentalRequestData, equipmentId, ownerId);
@@ -170,11 +177,12 @@ export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: pro
     } catch {
       toast.error("An unexpected error occurred.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
-  if (dataLoading) {
+  // Combined loading state
+  if (userLoading || equipmentLoading) {
     return <FormSkeleton />;
   }
 
@@ -193,7 +201,7 @@ export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: pro
 
         <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 shadow-sm">
           <div className="flex items-center gap-2 mb-4 text-slate-500">
-            <User className="w-5 h-5" />
+            <UserIcon className="w-5 h-5" />
             <h3 className="font-semibold text-sm uppercase tracking-wide">Renter Information</h3>
             <div className="ml-auto" title="These details are pulled from your profile">
                 <Info className="w-4 h-4 text-slate-400" />
@@ -209,7 +217,7 @@ export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: pro
                     readOnly 
                     className="pl-9 bg-white text-slate-700 font-medium border-slate-200 focus-visible:ring-0 cursor-default"
                  />
-                 <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                 <UserIcon className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                </div>
             </div>
 
@@ -336,10 +344,10 @@ export default function RentRequestForm({ ownerId: propOwnerId, equipmentId: pro
         
         <Button 
           type="submit" 
-          disabled={loading || dataLoading || !ownerId}
+          disabled={submitting || !ownerId}
           className="w-full h-11 text-base font-medium shadow-md transition-all active:scale-[0.99]"
         >
-          {loading ? (
+          {submitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting Request...
             </>
