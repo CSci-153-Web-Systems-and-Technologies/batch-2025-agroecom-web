@@ -59,7 +59,7 @@ export function EquipmentCard({
               </div>
             </div>
 
-            <div className="flex items-center text-xs text-gray-500 mt-1 min-h-[1.25rem]">
+            <div className="flex items-center text-xs text-gray-500 mt-1 min-h-5">
               {location ? (
                 <>
                   <MapPin className="w-3 h-3 mr-1 text-green-600 shrink-0" />
