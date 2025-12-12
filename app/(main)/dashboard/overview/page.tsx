@@ -31,16 +31,14 @@ export default async function Overview() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return null
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const userRole = profile?.role || 'farmer'
+  const userRole = user.user_metadata?.role || 'farmer'
   const isAdmin = userRole === 'admin'
-  const name = user.user_metadata?.username || user.email?.split('@')[0]
+
+  const name = user.user_metadata?.username || 
+               user.user_metadata?.first_name || 
+               user.user_metadata?.full_name || 
+               user.email?.split('@')[0] || 
+               'Farmer'
 
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
