@@ -2,21 +2,7 @@
 
 import { StarRating } from '@/components/ui/star-rating'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
-interface ReviewItemProps {
-  id: string;
-  user_id: string;
-  equipment_id: string;
-  rating_count: number;
-  comment: string;
-  created_at: string;
-  users: {
-    first_name: string;
-    last_name: string;
-    address: string;
-    avatar_url?: string; 
-  } | null;
-}
+import { ReviewItemProps } from "@/types"
 
 export default function ReviewItem({ review }: { review: ReviewItemProps }) {
   const userName = review.users 
