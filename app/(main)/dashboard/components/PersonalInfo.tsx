@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import PersonalInfoSkeleton from "./PersonalInfoSkeleton"
-import { Loader2, Camera } from "lucide-react"
+import { Loader2, Camera, Pencil } from "lucide-react"
 
 interface FormDataState {
   username: string;
@@ -17,6 +17,7 @@ interface FormDataState {
   email: string;
   address: string;
   avatarUrl: string;
+  contactNumber: string;
 }
 
 interface PersonalInfoProps {
@@ -27,6 +28,7 @@ interface PersonalInfoProps {
   email?: string
   address?: string
   avatarUrl?: string
+  contactNumber?: string
   userId?: string 
 }
 
@@ -38,9 +40,12 @@ export default function PersonalInfo({
   email,
   address,
   avatarUrl,
+  contactNumber,
   userId: propUserId
 }: PersonalInfoProps) {
+  
   const [isEditing, setIsEditing] = useState(false)
+  
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,7 +59,8 @@ export default function PersonalInfo({
     lastName: "",
     email: "",
     address: "",
-    avatarUrl: ""
+    avatarUrl: "",
+    contactNumber: ""
   })
 
   const [originalData, setOriginalData] = useState<FormDataState>(formData)
@@ -71,7 +77,8 @@ export default function PersonalInfo({
             lastName: lastName || "",
             email: email || "",
             address: address || "",
-            avatarUrl: avatarUrl || ""
+            avatarUrl: avatarUrl || "",
+            contactNumber: contactNumber || ""
         }
         
         setFormData(dataFromProps)
@@ -93,9 +100,10 @@ export default function PersonalInfo({
 
         setCurrentAuthUserId(user.id)
         setUserId(user.id) 
+
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('username, first_name, last_name, avatar_url, address')
+          .select('username, first_name, last_name, avatar_url, address, contact_number')
           .eq('id', user.id)
           .single()
 
@@ -110,9 +118,10 @@ export default function PersonalInfo({
           lastName: profile?.last_name || "",
           address: profile?.address || "", 
           email: user.email || "", 
-          avatarUrl: profile?.avatar_url || ""
+          avatarUrl: profile?.avatar_url || "",
+          contactNumber: profile?.contact_number || ""
         }
-        console.log(initialData)
+        
         setFormData(initialData)
         setOriginalData(initialData)
       } catch (error) {
@@ -123,7 +132,8 @@ export default function PersonalInfo({
     }
 
     fetchData()
-  }, [username, firstName, lastName, email, address, avatarUrl, propUserId, supabase]) 
+  }, [username, firstName, lastName, email, address, avatarUrl, contactNumber, propUserId, supabase]) 
+
 
   const handleEditClick = () => {
     setIsEditing(true)
@@ -159,13 +169,14 @@ export default function PersonalInfo({
           first_name: formData.firstName,
           last_name: formData.lastName,
           address: formData.address, 
+          contact_number: formData.contactNumber, 
           updated_at: new Date().toISOString(),
         })
 
       if (error) throw error
 
       setOriginalData(formData)
-      setIsEditing(false)
+      setIsEditing(false) 
       toast.success("Profile updated successfully")
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update profile"
@@ -175,14 +186,11 @@ export default function PersonalInfo({
     }
   }
 
-  const getInitials = () => {
-    const first = formData.firstName ? formData.firstName[0] : ""
-    const last = formData.lastName ? formData.lastName[0] : ""
-    return (first + last).toUpperCase() || formData.email?.slice(0, 2).toUpperCase() || "U"
-  }
 
   const handleUploadClick = () => {
-    fileInputRef.current?.click()
+    if (canEdit) {
+      fileInputRef.current?.click()
+    }
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,7 +199,7 @@ export default function PersonalInfo({
 
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
     if (!validTypes.includes(file.type)) {
-      toast.error("Please upload a valid image file (JPEG, PNG, GIF, or WebP)")
+      toast.error("Please upload a valid image file")
       return
     }
 
@@ -230,17 +238,22 @@ export default function PersonalInfo({
       setFormData(prev => ({ ...prev, avatarUrl: publicUrl }))
       setOriginalData(prev => ({ ...prev, avatarUrl: publicUrl }))
       
-      toast.success("Profile picture updated successfully")
+      toast.success("Profile picture updated")
     } catch (error) {
       console.error(error)
-      const errorMessage = error instanceof Error ? error.message : "Failed to upload image"
-      toast.error(errorMessage)
+      toast.error("Failed to upload image")
     } finally {
       setUploading(false)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
+  }
+
+  const getInitials = () => {
+    const first = formData.firstName ? formData.firstName[0] : ""
+    const last = formData.lastName ? formData.lastName[0] : ""
+    return (first + last).toUpperCase() || formData.email?.slice(0, 2).toUpperCase() || "U"
   }
 
   if (loading && !formData.email) {
@@ -253,17 +266,16 @@ export default function PersonalInfo({
         <div className="text-xl font-semibold">
           Personal Information
         </div>
-        {canEdit && !isEditing && ( 
-          <Button 
-            onClick={handleEditClick}
-            variant="outline"
-          >
-            Edit
-          </Button>
+
+        {canEdit && !isEditing && (
+            <Button onClick={handleEditClick} variant="outline" size="sm">
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Details
+            </Button>
         )}
       </CardHeader>
       <CardContent className="space-y-6">
-        
+
         <div className="flex items-center space-x-4">
           <div className="relative group/avatar">
             <Avatar className="h-24 w-24">
@@ -275,10 +287,11 @@ export default function PersonalInfo({
               <AvatarFallback>{getInitials()}</AvatarFallback>
             </Avatar>
 
-            {canEdit && isEditing && (
+            {canEdit && (
                 <div 
                     onClick={handleUploadClick}
                     className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                    title="Change Profile Picture"
                 >
                     {uploading ? (
                       <Loader2 className="h-6 w-6 animate-spin text-white" />
@@ -289,7 +302,7 @@ export default function PersonalInfo({
             )}
           </div>
 
-          {canEdit && isEditing && (
+          {canEdit && (
               <input
                 ref={fileInputRef}
                 type="file"
@@ -309,8 +322,8 @@ export default function PersonalInfo({
               id="username" 
               value={formData.username}
               onChange={handleInputChange}
-              readOnly={!isEditing || !canEdit}
-              className={`${(!isEditing || !canEdit) ? 'bg-muted' : ''}`}
+              readOnly={!isEditing} 
+              className={`${!isEditing ? 'bg-muted' : ''}`}
             />
           </div>
 
@@ -331,8 +344,8 @@ export default function PersonalInfo({
               id="firstName" 
               value={formData.firstName}
               onChange={handleInputChange}
-              readOnly={!isEditing || !canEdit}
-              className={`${(!isEditing || !canEdit) ? 'bg-muted' : ''}`}
+              readOnly={!isEditing}
+              className={`${!isEditing ? 'bg-muted' : ''}`}
             />
           </div>
 
@@ -342,8 +355,20 @@ export default function PersonalInfo({
               id="lastName" 
               value={formData.lastName}
               onChange={handleInputChange}
-              readOnly={!isEditing || !canEdit}
-              className={`${(!isEditing || !canEdit) ? 'bg-muted' : ''}`}
+              readOnly={!isEditing}
+              className={`${!isEditing ? 'bg-muted' : ''}`}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="contactNumber" className="block text-sm font-medium">Contact Number</label>
+            <Input 
+              id="contactNumber" 
+              value={formData.contactNumber}
+              onChange={handleInputChange}
+              readOnly={!isEditing}
+              placeholder="e.g. 0912 345 6789"
+              className={`${!isEditing ? 'bg-muted' : ''}`}
             />
           </div>
           
@@ -353,9 +378,9 @@ export default function PersonalInfo({
               id="address" 
               value={formData.address}
               onChange={handleInputChange}
-              readOnly={!isEditing || !canEdit}
+              readOnly={!isEditing}
               placeholder="123 Farmville Road, Barangay Sta. Cruz"
-              className={`${(!isEditing || !canEdit) ? 'bg-muted' : ''}`}
+              className={`${!isEditing ? 'bg-muted' : ''}`}
             />
           </div>
 
