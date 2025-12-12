@@ -1,20 +1,22 @@
-'use client'
-
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { useUserData} from '@/lib/user-data'
 
-export default function DashboardIndex() {
-  const { user, loading } = useUserData();
-  // const supabase = await createClient()
+export default async function DashboardIndex() {
+  const supabase = await createClient()
 
-  // const { data: { user }, error } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // if (error || !user) {
-  //   redirect('/login')
-  // }
+  if (!user) {
+    redirect('/login')
+  }
 
-  const role = user?.app_metadata?.role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const role = profile?.role || 'farmer'
 
   if (role === 'farmer') {
     redirect('/dashboard/farmer/profile')
