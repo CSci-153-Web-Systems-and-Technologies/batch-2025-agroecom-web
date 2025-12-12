@@ -15,17 +15,11 @@ import {
 export default async function EquipmentPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   let isLender = false;
 
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    
-    isLender = profile?.role === 'lender';
+    const userRole = user.user_metadata?.role || 'farmer';
+    isLender = userRole === 'lender';
   }
 
   const equipmentTypes = await getEquipmentTypes();
@@ -55,7 +49,7 @@ export default async function EquipmentPage() {
               </div>
             }
             <div className="bg-white mt-16 p-6 rounded-lg shadow-sm border h-fit">
-              <EquipmentSidebar equipmentTypes={equipmentTypes || []} />
+              <EquipmentSidebar equipmentTypes={equipmentTypes} />
             </div>
           </div>
           <div className="lg:col-span-9">
