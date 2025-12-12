@@ -27,7 +27,7 @@ export default function SectionCards() {
                     variant="default"
                     className="w-[200px]"
                     onClick={() => {
-                        router.push("/");
+                        router.push("/contacts");
                     }}>
                         Become a Lender
                     </Button>
