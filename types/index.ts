@@ -69,3 +69,43 @@ export interface StatItem {
   iconColor?: string 
   valueColor?: string 
 }
+
+
+export interface ReviewData {
+  id: string;
+  user_id: string;
+  equipment_id: string;
+  rating_count: number;
+  comment: string;
+  created_at: string;
+  users: {
+    first_name: string;
+    last_name: string;
+    address: string;
+    avatar_url?: string; 
+  } | null;
+}
+
+export interface ReviewsSectionProps {
+  equipmentId: string;
+}
+
+export interface ReviewItemProps {
+  id: string;
+  user_id: string;
+  equipment_id: string;
+  rating_count: number;
+  comment: string;
+  created_at: string;
+  users: {
+    first_name: string;
+    last_name: string;
+    address: string;
+    avatar_url?: string; 
+  } | null;
+}
+
+export interface WriteReviewFormProps {
+  equipmentId: string;
+  onSuccess?: () => void;
+}
