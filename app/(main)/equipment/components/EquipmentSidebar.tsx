@@ -4,9 +4,9 @@ import { Label } from '@/components/ui/label';
 import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUserData } from '@/lib/user-data';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { RotateCcw } from 'lucide-react';
 
 interface EquipmentType {
@@ -19,10 +19,26 @@ interface EquipmentSidebarProps {
 }
 
 export default function EquipmentSidebar({ equipmentTypes }: EquipmentSidebarProps) {
-  const { user } = useUserData();
-  const userRole = user?.user_metadata?.role || user?.app_metadata?.role || 'farmer';
-  const isLender = userRole === 'lender';
-  
+  const [isLender, setIsLender] = useState(false);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        setIsLender(profile?.role === 'lender');
+      }
+    };
+    
+    checkRole();
+  }, []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
