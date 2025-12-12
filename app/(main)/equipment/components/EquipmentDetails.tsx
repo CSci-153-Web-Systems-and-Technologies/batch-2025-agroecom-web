@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { StarRating } from '@/components/ui/star-rating'
 import { SquarePen, Check, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,13 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useUserData } from '@/lib/user-data'
-import { getEquipmentById, updateEquipment } from '@/lib/equipment-actions'
+import { updateEquipment } from '@/lib/equipment-actions'
 import { toast } from 'sonner'
-
-interface EquipmentDetailsProps {
-  equipmentId: string;
-}
-interface EquipmentData {
+export interface EquipmentData {
+  id: string 
   name: string
   model: string
   description: string
@@ -31,47 +28,33 @@ interface EquipmentData {
   } | null
 }
 
-export default function EquipmentDetails({ equipmentId }: EquipmentDetailsProps) {
+interface EquipmentDetailsProps {
+  data: EquipmentData 
+}
+
+export default function EquipmentDetails({ data }: EquipmentDetailsProps) {
   const { user } = useUserData()
-  const [equipment, setEquipment] = useState<EquipmentData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+
+  const [equipment, setEquipment] = useState<EquipmentData | null>(data as EquipmentData)
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: '',
-    model: '',
-    delivery: '',
-    location: '', 
-    description: '',
-    rate: 0,
+    name: data?.name || '',
+    model: data?.model || '',
+    description: data?.description || '',
+    delivery: data?.delivery || '',
+    location: data?.location || '', 
+    rate: data?.rate || 0,
   })
 
-  useEffect(() => {
-    async function fetchEquipment() {
-      setIsLoading(true)
-      const data = await getEquipmentById(equipmentId)
-      
-      if (data) {
-        const equipmentData = data as unknown as EquipmentData
-        setEquipment(equipmentData)
-        
-        setFormData({
-          name: equipmentData.name || '',
-          model: equipmentData.model || '',
-          description: equipmentData.description || '',
-          delivery: equipmentData.delivery || '',
-          location: equipmentData.location || '',
-          rate: equipmentData.rate || 0,
-        })
-      }
-      setIsLoading(false)
-    }
-    
-    if (equipmentId) {
-      fetchEquipment()
-    }
-  }, [equipmentId])
+  if (!equipment) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-500">
+        Equipment not found.
+      </div>
+    )
+  }
 
   const isOwner = user?.id === equipment?.user_id
 
@@ -85,7 +68,7 @@ export default function EquipmentDetails({ equipmentId }: EquipmentDetailsProps)
 
   const handleSave = async () => {
     setIsSaving(true)
-    const result = await updateEquipment(equipmentId, formData)
+    const result = await updateEquipment(equipment.id, formData)
     
     if (result.success) {
       setEquipment(prev => prev ? { ...prev, ...formData } : null)
@@ -111,22 +94,6 @@ export default function EquipmentDetails({ equipmentId }: EquipmentDetailsProps)
       })
     }
     setIsEditing(false)
-  }
-
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    )
-  }
-
-  if (!equipment) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-500">
-        Equipment not found.
-      </div>
-    )
   }
 
   const ownerName = equipment.users 
@@ -222,7 +189,7 @@ export default function EquipmentDetails({ equipmentId }: EquipmentDetailsProps)
                 />
             </div>
           ) : (
-            <p className="text-base text-gray-800 font-medium">₱{formData.rate}</p>
+            <p className="text-base text-gray-800 font-medium">₱{Number(formData.rate).toLocaleString()}</p>
           )}
         </div>
 
