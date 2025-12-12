@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface Equipment {
   id: string;
   name: string;
-  rate: number; 
+  rate: number;
   model: string;
   image_url?: string;
   location?: string;
@@ -25,6 +25,7 @@ export default function EquipmentListClient() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [count, setCount] = useState(0);
   const [isPending, startTransition] = useTransition();
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const filters = useMemo((): EquipmentFilters => ({
     location: searchParams.get('location') || undefined,
@@ -43,38 +44,40 @@ export default function EquipmentListClient() {
   useEffect(() => {
     startTransition(async () => {
       const result = await getEquipmentList(filters);
-      
+
       if (result.data && result.data.length > 0) {
         const enrichedData = await Promise.all(
           result.data.map(async (item) => {
             const stats = await getEquipmentById(item.id);
-            
+
             return {
               ...item,
-              ...(stats || { 
-                location: item.location, 
-                rental_count: 0, 
-                average_rating: 0, 
-                total_reviews: 0 
+              ...(stats || {
+                location: item.location,
+                rental_count: 0,
+                average_rating: 0,
+                total_reviews: 0
               })
             };
           })
         );
-        
+
         setEquipment(enrichedData as unknown as Equipment[]);
       } else {
         setEquipment([]);
       }
-      
+
       setCount(result.count || 0);
+      setIsInitialLoading(false);
     });
-  }, [filters]); 
+  }, [filters]);
+
+  const isLoading = isPending || isInitialLoading;
 
   return (
     <section className="space-y-6">
       <EquipmentToolbar />
-
-      {isPending ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {Array.from({ length: limit }).map((_, i) => (
             <div key={i} className="space-y-3">
@@ -92,8 +95,8 @@ export default function EquipmentListClient() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
             {equipment.map((item) => (
-              <EquipmentCard 
-                key={item.id} 
+              <EquipmentCard
+                key={item.id}
                 id={item.id}
                 name={item.name}
                 rate={item.rate}
@@ -106,9 +109,9 @@ export default function EquipmentListClient() {
               />
             ))}
           </div>
-          <PaginationControl 
-            currentPage={currentPage} 
-            totalPages={totalPages} 
+          <PaginationControl
+            currentPage={currentPage}
+            totalPages={totalPages}
           />
         </>
       )}
