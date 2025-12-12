@@ -12,8 +12,11 @@ import EquipmentDetails from '../../components/EquipmentDetails'
 import ReviewsSection from '../../reviews/ReviewsSection'
 import WriteReviewForm from '../../reviews/WriteReviewForm'
 import RentRequestModal from '../../components/RentRequestModal'
+import { EquipmentData } from "../../components/EquipmentDetails"
+
 import { getEquipmentById, getEquipmentImageById } from '@/lib/equipment-actions'
-import { EquipmentData } from "../../components/EquipmentDetails" 
+import { createClient } from '@/utils/supabase/server' 
+
 interface PageProps {
   params: Promise<{ id: string }>
 }
@@ -21,13 +24,26 @@ interface PageProps {
 export default async function EquipmentDetailPage({ params }: PageProps) {
   const { id } = await params
   
-  const equipmentId = id 
-  const isFarmer = true 
+  const supabase = await createClient()
 
-  const [imageData, equipmentDetails] = await Promise.all([
-    getEquipmentImageById(equipmentId),
-    getEquipmentById(equipmentId) 
+  const [userData, imageData, equipmentDetails] = await Promise.all([
+    supabase.auth.getUser(),
+    getEquipmentImageById(id),
+    getEquipmentById(id)
   ])
+
+  let isFarmer = false
+  const user = userData.data.user
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    isFarmer = profile?.role === 'farmer'
+  }
 
   const imageUrl = imageData?.image_url || '/Hero_bg.jpg'
   const equipmentName = imageData?.name || 'Equipment'
@@ -63,19 +79,20 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
                priority 
              />
            </div>
+
            {isFarmer && (
              <>
                <div className="w-full inline-flex justify-center">
                  <RentRequestModal />
                </div>
-               <WriteReviewForm equipmentId={equipmentId} />
+               <WriteReviewForm equipmentId={id} />
              </>
            )}
          </div>
          <div className="lg:col-span-7 relative">
-           <div className="sticky top-8">78
+           <div className="sticky top-8">
              <EquipmentDetails data={equipmentDetails as unknown as EquipmentData} /> 
-             <ReviewsSection equipmentId={equipmentId} />
+             <ReviewsSection equipmentId={id} />
            </div>
          </div> 
        </div>
