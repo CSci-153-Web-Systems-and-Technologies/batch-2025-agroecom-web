@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ReviewItem from './ReviewItem'
 import { getEquipmentReviews } from '@/lib/equipment-actions'
 import { Loader2, MessageSquare, Star } from 'lucide-react'
-
+import { ReviewData, ReviewsSectionProps} from '@/types'
 import {
   Pagination,
   PaginationContent,
@@ -12,25 +12,6 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-
-export interface ReviewData {
-  id: string;
-  user_id: string;
-  equipment_id: string;
-  rating_count: number;
-  comment: string;
-  created_at: string;
-  users: {
-    first_name: string;
-    last_name: string;
-    address: string;
-    avatar_url?: string; 
-  } | null;
-}
-
-interface ReviewsSectionProps {
-  equipmentId: string;
-}
 
 export default function ReviewsSection({ equipmentId }: ReviewsSectionProps) {
     const [reviews, setReviews] = useState<ReviewData[]>([]);

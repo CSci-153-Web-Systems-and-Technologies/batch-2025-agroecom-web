@@ -7,11 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { postReview } from "@/lib/equipment-actions";
 import { toast } from "sonner";
-
-interface WriteReviewFormProps {
-  equipmentId: string;
-  onSuccess?: () => void;
-}
+import { WriteReviewFormProps } from '@/types'
 
 export default function WriteReviewForm({ equipmentId, onSuccess }: WriteReviewFormProps) {
   const [hoverRating, setHoverRating] = useState(0);
