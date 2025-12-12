@@ -14,16 +14,12 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
     if (!user) {
         redirect('/login')
     }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    const userRole = profile?.role || 'farmer'
-    
-    const userName = user.user_metadata?.username || user.email?.split('@')[0] || 'User'
+    const userRole = user.user_metadata?.role || 'farmer'
+    const userName = user.user_metadata?.first_name || 
+                    user.user_metadata?.full_name || 
+                    user.email?.split('@')[0] || 
+                    'User'
+                     
     const userAvatar = user.user_metadata?.avatar_url || ''
 
     return (
