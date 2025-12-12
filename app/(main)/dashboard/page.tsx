@@ -9,17 +9,11 @@ export default async function DashboardIndex() {
   if (!user) {
     redirect('/login')
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const role = profile?.role || 'farmer'
+  const role = user.user_metadata?.role || 'farmer'
 
   if (role === 'farmer') {
     redirect('/dashboard/farmer/profile')
   }
+  
   redirect('/dashboard/overview')
 }
