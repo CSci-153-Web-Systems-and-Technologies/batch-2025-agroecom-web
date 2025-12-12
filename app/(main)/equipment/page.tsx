@@ -15,7 +15,18 @@ import {
 export default async function EquipmentPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const isLender = user?.app_metadata?.role === 'lender';
+
+  let isLender = false;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    isLender = profile?.role === 'lender';
+  }
 
   const equipmentTypes = await getEquipmentTypes();
 
