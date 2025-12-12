@@ -25,6 +25,7 @@ interface EquipmentFormData {
   description: string;
   location: string;
 }
+
 interface AddEquipmentFormProps {
   onSubmit?: () => void; 
   onCancel?: () => void;
@@ -34,7 +35,6 @@ interface AddEquipmentFormProps {
 const INITIAL_STATE = {
   name: '',
   rate: '',
-  brand: '',
   model: '',
   type: '',
   delivery: '',
@@ -50,6 +50,9 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
   const [formData, setFormData] = useState<EquipmentFormData>(INITIAL_STATE);
   
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,28 +75,53 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const processFile = (file: File) => {
+    if (file.size > MAX_FILE_SIZE) {
+        toast.error("File is too large. Max size is 5MB.");
+        return;
+    }
+    
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    
+    setSelectedFile(file);
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
     if (file) {
+        processFile(file);
+    }
+  };
 
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error("File is too large. Max size is 5MB.");
-        e.target.value = ''; 
-        return;
-      }
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
 
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+        processFile(file);
     }
   };
 
   const removeImage = () => {
-    setPreviewUrl('');
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
-
+    setPreviewUrl('');
+    setSelectedFile(null); 
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -105,6 +133,10 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
 
     try {
         const submissionData = new FormData(e.currentTarget);
+
+        if (selectedFile) {
+            submissionData.set('image', selectedFile); 
+        }
 
         const result = await addEquipment(submissionData);
 
@@ -166,12 +198,10 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="text-gray-700 font-medium block">
-            Model <span className="text-red-500">*</span>
-          </label>
+          <label className="text-gray-700 font-medium block">Model </label>
           <Input
             name="model"
-            placeholder="Enter model (e.g. 5050D)"
+            placeholder="Enter model"
             value={formData.model}
             onChange={handleInputChange}
             required
@@ -181,16 +211,14 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
         </div>
 
         <div className="space-y-2">
-          <label className="text-gray-700 font-medium block">
-            Type <span className="text-red-500">*</span>
-          </label>
+          <label className="text-gray-700 font-medium block">Type</label>
           <Select
             value={formData.type}
             onValueChange={(value) => handleSelectChange('type', value)}
             disabled={isLoading}
           >
             <SelectTrigger className="border-gray-300">
-              <SelectValue placeholder="Select equipment type" />
+              <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
               {equipmentTypes.map((type) => (
@@ -202,12 +230,10 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
       </div>
     
       <div className="space-y-2">
-        <label className="text-gray-700 font-medium block">
-          Location <span className="text-red-500">*</span>
-        </label>
+        <label className="text-gray-700 font-medium block">Location</label>
         <Input
           name="location"
-          placeholder="Enter the equipment's current location (e.g., Ormoc City, Leyte)"
+          placeholder="Enter location"
           value={formData.location}
           onChange={handleInputChange}
           required
@@ -216,11 +242,17 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
         />
       </div>
 
-
       <div className="space-y-4">
         <label className="text-gray-700 font-medium block">Upload an image</label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative">
-          
+        
+        <div 
+            className={`border-2 border-dashed rounded-lg p-6 text-center relative transition-colors duration-200 ${
+                isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:bg-gray-50'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
           {previewUrl ? (
             <div className="relative inline-block">
               <Image
@@ -242,14 +274,14 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
             </div>
           ) : (
             <>
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <Upload className={`mx-auto h-12 w-12 mb-4 ${isDragging ? 'text-green-500' : 'text-gray-400'}`} />
               <div className="text-gray-600 mb-2">
-                Drag and drop or click to select files.
+                {isDragging ? 'Drop image here!' : 'Drag and drop or click to select files.'}
               </div>
-              <label htmlFor="image-upload" className="cursor-pointer">
-                <div className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Select Files
+              
+              <label htmlFor="image-upload" className="cursor-pointer relative z-10">
+                <div className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 mt-2">
+                    <Upload className="h-4 w-4 mr-2" /> Select Files
                 </div>
                 <Input
                   id="image-upload"
@@ -268,9 +300,7 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
       </div>
 
       <div className="space-y-2">
-        <label className="text-gray-700 font-medium block">
-          Delivery <span className="text-red-500">*</span>
-        </label>
+        <label className="text-gray-700 font-medium block">Delivery <span className="text-red-500">*</span></label>
         <Select
           value={formData.delivery}
           onValueChange={(value) => handleSelectChange('delivery', value)}
@@ -291,7 +321,7 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
         <label className="text-gray-700 font-medium block">Description</label>
         <Textarea
           name="description"
-          placeholder="Enter equipment description..."
+          placeholder="Enter description..."
           value={formData.description}
           onChange={handleInputChange}
           disabled={isLoading}
@@ -303,8 +333,7 @@ export default function AddEquipmentForm({ onSubmit, isLoading: parentLoading = 
         <Button
           type="submit"
           disabled={isLoading}
-          className="text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: 'var(--btn-primary)' }}
+          className="bg-green-600 hover:bg-green-700 text-white"
         >
           {isLoading ? 'Submitting...' : 'Submit'}
         </Button>
