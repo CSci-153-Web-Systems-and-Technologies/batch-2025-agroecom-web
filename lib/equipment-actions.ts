@@ -414,13 +414,11 @@ interface RenterProfile {
   last_name: string
   email: string
   contact_number: string | null
-  avatar_url: string | null 
 }
 
 interface Owner {
   first_name: string
   last_name: string
-  avatar_url: string | null
 }
 
 export interface RentalRequest {
@@ -455,18 +453,19 @@ export async function getEquipmentRentalInfo(rentalId: string): Promise<RentalRe
       end_date,
       message,
       status,
-      owner:owner_id (
+
+      owner:profiles!rentals_owner_id_fkey ( 
         first_name,
-        last_name,
-        avatar_url
+        last_name
       ),
-      renter:profiles!renter_id (
+
+      renter:profiles!rentals_renter_id_fkey1 (
         first_name,
         last_name,
         email,
-        contact_number,
-        avatar_url
+        contact_number
       ),
+
       equipment:equipment_id (
         name,
         model, 
@@ -483,7 +482,7 @@ export async function getEquipmentRentalInfo(rentalId: string): Promise<RentalRe
     `)
     .eq('id', rentalId)
     .order('created_at', { ascending: false })
-
+    
   if (error) {
     console.error('Error fetching rental info:', error)
     return []
